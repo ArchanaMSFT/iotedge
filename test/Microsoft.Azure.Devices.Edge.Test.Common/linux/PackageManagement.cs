@@ -38,7 +38,19 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 .GetFiles(path, $"*.{this.packageExtension.ToString().ToLower()}")
                 .Where(p => !p.Contains("debug"))
                 .ToArray();
-
+	    if(os == "Mariner")
+	    {
+		    return new[]
+            {
+		         "set -e",
+                 "sudo dnf install -y azure-iotedge",
+                 "pathToSystemdConfig=$(systemctl cat iotedge | head -n 1)",
+                 "sed 's/=on-failure/=no/g' ${pathToSystemdConfig#?} > ~/override.conf",
+                 "sudo mv -f ~/override.conf ${pathToSystemdConfig#?}",
+                 "sudo systemctl daemon-reload"
+		    };
+	    }
+	    else
             return this.packageExtension switch
             {
                 SupportedPackageExtension.Deb => new[]
@@ -48,14 +60,15 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     $"apt-get install -f"
                 },
                 SupportedPackageExtension.Rpm => new[]
-                {
-                    "set -e",
-                    $"yum install -y {string.Join(' ', packages)}",
-                    "pathToSystemdConfig=$(systemctl cat iotedge | head -n 1)",
-                    "sed 's/=on-failure/=no/g' ${pathToSystemdConfig#?} > ~/override.conf",
-                    "sudo mv -f ~/override.conf ${pathToSystemdConfig#?}",
-                    "sudo systemctl daemon-reload"
-                },
+		{
+		       	"set -e",
+                    	$"yum install -y {string.Join(' ', packages)}",
+                    	"pathToSystemdConfig=$(systemctl cat iotedge | head -n 1)",
+                    	"sed 's/=on-failure/=no/g' ${pathToSystemdConfig#?} > ~/override.conf",
+                    	"sudo mv -f ~/override.conf ${pathToSystemdConfig#?}",
+                    	"sudo systemctl daemon-reload"
+                
+		 },
                 _ => throw new NotImplementedException($"Don't know how to install daemon on for '.{this.packageExtension}'"),
             };
         }

@@ -22,15 +22,25 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             Option<Registry> bootstrapRegistry,
             CancellationToken token)
         {
-            string[] platformInfo = await Process.RunAsync("lsb_release", "-sir", token);
+	    SupportedPackageExtension packageExtension;
+	    string os, version;
+        string[] platformInfo = await Process.RunAsync("cat", @"/etc/os-release", token);
+	    if (platformInfo.Any(s=> s.Contains("Mariner")))
+	    {
+            os = "Mariner";
+            version = "1.0";
+            packageExtension = SupportedPackageExtension.Rpm;
+	    }
+	    else
+	    {
+	        platformInfo = await Process.RunAsync("lsb_release", "-sir", token);
             if (platformInfo.Length == 1)
             {
                 platformInfo = platformInfo[0].Split(' ');
             }
 
-            string os = platformInfo[0].Trim();
-            string version = platformInfo[1].Trim();
-            SupportedPackageExtension packageExtension;
+            os = platformInfo[0].Trim();
+            version = platformInfo[1].Trim();
 
             switch (os)
             {
@@ -57,7 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 default:
                     throw new NotImplementedException($"Don't know how to install daemon on operating system '{os}'");
             }
-
+	    }
             return new EdgeDaemon(
                 bootstrapAgentImage,
                 bootstrapRegistry,
